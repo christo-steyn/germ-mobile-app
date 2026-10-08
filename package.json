@@ -1,0 +1,21 @@
+{
+  "name": "germ-mobile-app",
+  "version": "1.0.0",
+  "description": "React Native mobile app with Expo for alarm notifications and subscription management. Includes a Node.js/Express backend for authentication and push notifications.",
+  "private": true,
+  "scripts": {
+    "setup": "npm --prefix backend ci && npm --prefix frontend ci",
+    "backend": "npm --prefix backend run dev",
+    "frontend": "npm --prefix frontend start",
+    "seed": "npm --prefix backend run seed",
+    "test": "npm --prefix backend test && npm --prefix frontend test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/christo-steyn/germ-mobile-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

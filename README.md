@@ -1,336 +1,87 @@
 # Germ Mobile App
 
-React Native mobile app with Expo for alarm notifications and subscription management. Includes a Node.js/Express backend for authentication and push notifications.
+An Expo React Native alarm subscription app and an Express/SQLite API.
+Users register or log in with JWT authentication, browse alarms, manage their
+subscriptions, and receive Expo push notifications on Android and iOS.
 
-## Project Structure
+## Quick start
 
-```
-germ-mobile-app/
-├── backend/              # Node.js/Express API server
-│   ├── src/
-│   │   ├── server.js     # Main server file
-│   │   ├── auth.js       # JWT authentication logic
-│   │   ├── database.js   # Database setup
-│   │   └── routes/       # API routes
-│   ├── package.json
-│   ├── .env.example
-│   └── README.md         # Backend setup instructions
-└── frontend/             # Expo React Native app
-    ├── app/
-    ├── components/
-    ├── screens/
-    ├── context/          # Context API for state management
-    ├── api/              # API client
-    ├── app.json          # Expo configuration
-    ├── package.json
-    └── README.md         # Frontend setup instructions
+Use Node.js **22 LTS (22.13+) or 24 LTS (24.3+)** and npm. From the repository root:
+
+```sh
+npm run setup
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
 ```
 
-## Quick Start
+Set the generated value as `JWT_SECRET` in `backend/.env`. Set the frontend
+`EXPO_PUBLIC_API_URL` to a URL reachable from your device:
 
-### Prerequisites
+| Client | Local backend URL |
+| --- | --- |
+| Android Studio emulator | `http://10.0.2.2:3000` |
+| iOS simulator on the backend's Mac | `http://localhost:3000` |
+| Physical Android/iOS device | `http://YOUR_COMPUTER_LAN_IP:3000` |
+| Production | Your public **HTTPS** API URL |
 
-- Node.js 16+ and npm/yarn
-- Git
-- Android Studio (for Android simulator) or Xcode (for iOS)
-- Expo CLI: `npm install -g expo-cli`
-
-### 1. Backend Setup
-
-```bash
-cd backend
-npm install
-cp .env.example .env
-# Edit .env with your settings
-npm run dev
+```sh
+npm run seed
+npm run backend
+# In a second terminal:
+npm run frontend
 ```
 
-The backend will run on `http://localhost:3000`
+The API listens on port **3000**; Metro normally uses **8081**. Development
+seed credentials: **demo / DemoPassword123!**. Never seed a production database.
+The frontend uses the same backend seed data, not a separate mock login.
 
-### 2. Frontend Setup
+## Guides
 
-```bash
-cd frontend
-npm install
-# Update API_URL in .env to point to your backend
-expo start
+- [Backend setup, API examples, and tests](BACKEND_SETUP.md)
+- [Android emulator, iOS devices, push notifications, and publishing](FRONTEND_SETUP.md)
+- [Backend configuration reference](backend/README.md)
+
+## Layout
+
+```text
+backend/
+  server.js
+  config/          # Environment and database configuration
+  middleware/      # JWT authentication and request protections
+  models/          # SQLite schemas and queries
+  controllers/     # Business logic
+  routes/          # Express routes
+  test/            # API regression tests
+frontend/
+  App.js
+  api/             # Token-aware API client
+  components/      # Reusable cards, loading, and error handling
+  context/         # Authentication, alarms, and subscriptions
+  navigation/      # Authentication stack and bottom tabs
+  screens/
+  utils/           # Notification registration and listeners
 ```
 
-## Testing on Android Simulator
+## Validation
 
-### Setup Android Emulator (One-time)
-
-1. **Install Android Studio**
-   - Download from [android.com](https://developer.android.com/studio)
-   - Install with Android SDK and emulator
-
-2. **Create a Virtual Device**
-   - Open Android Studio → AVD Manager
-   - Click "Create Virtual Device"
-   - Choose a device (e.g., Pixel 5)
-   - Select API level 31 or higher
-   - Click "Finish"
-
-3. **Start the Emulator**
-   ```bash
-   # List available emulators
-   emulator -list-avds
-   
-   # Start an emulator (replace "Pixel_5_API_31" with your device name)
-   emulator -avd Pixel_5_API_31
-   ```
-
-### Run App on Android Simulator
-
-```bash
-cd frontend
-expo start
-
-# Once Expo dev server is running:
-# - Press 'a' to open in Android emulator (must already be running)
-# OR
-# - Scan QR code with Expo Go app (installed on emulator)
+```sh
+npm test
 ```
 
-**Testing Push Notifications on Android:**
-- Notifications will appear in the system tray
-- Test by triggering alarms from the backend or admin panel
-- Check notification handling in the app
+The individual packages also expose their own validation commands. Real remote
+push delivery needs Expo/EAS credentials and device testing; automated tests
+do not establish that Apple or Google delivery is configured.
 
-### Troubleshooting Android
+## Deployment boundaries
 
-- **Emulator won't start**: Check Android SDK path in Android Studio settings
-- **Metro bundler issues**: Clear cache with `expo start --clear`
-- **Notifications not working**: Verify backend is running and accessible from emulator (use `10.0.2.2` instead of `localhost`)
+This is a runnable foundation, not a hosted service. Before exposing it publicly,
+configure HTTPS, a strong JWT secret, restricted CORS, persistent storage and
+backups, monitoring, and notification credentials. Test-only alarm creation and
+notification sending must remain disabled in production. SQLite suits local
+development and a single server; use a database and job queue appropriate to
+your traffic for a larger deployment.
 
-## Testing on iOS Device
-
-### Prerequisites
-
-- Mac with Xcode installed
-- Apple Developer account (free or paid)
-- Physical iPhone or iPad
-
-### Setup for Physical iOS Device
-
-1. **Install Xcode**
-   ```bash
-   xcode-select --install
-   ```
-
-2. **Install CocoaPods**
-   ```bash
-   sudo gem install cocoapods
-   ```
-
-3. **Connect iOS Device**
-   - Plug in iPhone via USB
-   - Open Xcode → Window → Devices and Simulators
-   - Verify device is connected and trusted
-
-4. **Enable Developer Mode (iOS 16+)**
-   - Settings → Privacy & Security → Developer Mode
-   - Toggle on and restart
-
-5. **Build for iOS Device**
-   ```bash
-   cd frontend
-   eas build --platform ios --device
-   
-   # Or use Expo Go app for testing:
-   expo start
-   # Scan QR code with iPhone camera → Tap "Open with Expo Go"
-   ```
-
-### Testing Push Notifications on iOS
-
-- Notifications require signed credentials for production testing
-- Use EAS (Expo Application Services) for building with proper certificates
-- Test with development builds or TestFlight
-
-## Publishing to App Stores
-
-### Google Play Store (Android)
-
-#### Prerequisites
-
-- Google Play Developer Account ($25 one-time fee)
-- Signed APK/AAB build
-
-#### Steps
-
-1. **Prepare Your App**
-   ```bash
-   cd frontend
-   
-   # Create EAS configuration
-   eas build --platform android --type release
-   ```
-
-2. **Generate Keystore** (first time only)
-   ```bash
-   keytool -genkey -v -keystore my-release-key.keystore \
-     -keyalg RSA -keysize 2048 -validity 10000 \
-     -alias my-key-alias
-   ```
-
-3. **Build Release APK**
-   ```bash
-   # Using EAS (recommended)
-   eas build --platform android --type release
-   
-   # Or manually with Expo
-   expo build:android -t app-bundle
-   ```
-
-4. **Upload to Google Play**
-   - Go to [Google Play Console](https://play.google.com/console)
-   - Create new app
-   - Fill in app details, screenshots, description
-   - Upload AAB file to "Internal testing" → "Staging" → "Production"
-   - Submit for review (typically 2-3 hours)
-
-#### Detailed Requirements
-
-- App icon (512x512 png)
-- Screenshots (5+ per device type)
-- 80 character max app title
-- 4000 character description
-- Privacy policy URL
-- Content rating questionnaire
-
-### Apple App Store (iOS)
-
-#### Prerequisites
-
-- Apple Developer Account ($99/year)
-- Mac with Xcode
-- iOS Developer Certificate
-- App Store Connect access
-
-#### Steps
-
-1. **Prepare Your App**
-   ```bash
-   cd frontend
-   
-   # Create EAS configuration for iOS
-   eas build --platform ios --type release
-   ```
-
-2. **Set Up App Store Connect**
-   - Go to [App Store Connect](https://appstoreconnect.apple.com)
-   - Click "My Apps" → "+"
-   - Create new app
-   - Fill in bundle ID, app name, SKU
-   - Choose category
-
-3. **Configure App Information**
-   - Screenshots (6 per device size: iPhone 5.5", 6.7", etc.)
-   - App preview video (optional but recommended)
-   - Description (4000 char max)
-   - Keywords
-   - Support URL
-   - Privacy policy URL
-
-4. **Build and Submit**
-   ```bash
-   # Using EAS (recommended)
-   eas build --platform ios --type release
-   
-   # Then use Xcode or EAS to submit
-   eas submit --platform ios
-   ```
-
-5. **TestFlight Beta Testing** (before App Store)
-   ```bash
-   # Upload build to TestFlight first
-   eas submit --platform ios --latest
-   
-   # Invite testers and gather feedback
-   # Use Xcode organizer to manage builds
-   ```
-
-6. **App Store Review**
-   - Apple reviews all apps (usually 24-48 hours)
-   - Common rejection reasons: privacy policies, permission justification, etc.
-   - Address feedback and resubmit
-
-#### Important iOS Requirements
-
-- Push Notification certificate setup via App Store Connect
-- Privacy policy linked at signup
-- Clearly explain why app needs permissions
-- App icons for all sizes
-- Proper app rating (IARC questionnaire)
-
-## Environment Variables
-
-### Backend (.env)
-
-```
-PORT=3000
-NODE_ENV=development
-JWT_SECRET=your_secret_key_here
-DATABASE_PATH=./db.sqlite
-EXPO_ACCESS_TOKEN=your_expo_token_for_notifications
-```
-
-### Frontend (.env)
-
-```
-EXPO_PUBLIC_API_URL=http://localhost:3000
-EXPO_PUBLIC_EXPO_PROJECT_ID=your_expo_project_id
-```
-
-## Development Workflow
-
-### Backend Development
-
-```bash
-cd backend
-npm run dev        # Start with nodemon for auto-reload
-npm test           # Run tests
-npm run lint       # Lint code
-```
-
-### Frontend Development
-
-```bash
-cd frontend
-expo start         # Start Expo dev server
-npm test           # Run tests
-npm run lint       # Lint code
-```
-
-## Key Features
-
-- ✅ User authentication with JWT
-- ✅ Alarm subscription management
-- ✅ Push notifications via Expo
-- ✅ Cross-platform (iOS/Android)
-- ✅ Context API state management
-- ✅ Error handling and validation
-- ✅ Development and production builds
-
-## Common Issues & Solutions
-
-| Issue | Solution |
-|-------|----------|
-| Metro bundler crashes | Run `expo start --clear` |
-| Android emulator won't connect | Ensure backend is accessible at `10.0.2.2:3000` |
-| Notifications not working | Verify Expo token and backend configuration |
-| iOS simulator stuck | Kill Xcode processes: `killall com.apple.CoreSimulator.CoreSimulatorService` |
-| Build fails on iOS | Run `cd ios && pod install && cd ..` |
-
-## Additional Resources
-
-- [Expo Documentation](https://docs.expo.dev)
-- [React Native Docs](https://reactnative.dev)
-- [Google Play Publishing](https://developer.android.com/studio/publish)
-- [App Store Submission](https://developer.apple.com/app-store/submission/)
-- [EAS Build Documentation](https://docs.expo.dev/build/introduction/)
-
-## License
-
-MIT
+Before store submission, supply your own signing credentials, icons, screenshots,
+support/privacy URLs, account deletion workflow, and store privacy declarations.
+See the frontend guide for the build and submission process.
