@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "Germ Alarms",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "germ",
     "ios": {
       "supportsTablet": true
     },
@@ -23,7 +24,16 @@
     },
     "plugins": [
       "expo-secure-store",
-      "expo-router"
-    ]
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "alarms"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {}
+    }
   }
 }

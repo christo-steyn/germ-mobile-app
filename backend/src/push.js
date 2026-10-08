@@ -5,13 +5,13 @@ function createPushService(db, accessToken) {
   const removeToken = db.prepare('DELETE FROM push_tokens WHERE token = ?');
 
   async function sendAlarm(alarm) {
-    const tokens = db.prepare(`
-      SELECT p.token FROM push_tokens p
+    const devices = db.prepare(`
+      SELECT p.token, p.user_id FROM push_tokens p
       JOIN subscriptions s ON s.user_id = p.user_id WHERE s.alarm_id = ?
-    `).all(alarm.id).map(row => row.token);
-    const messages = tokens.map(token => ({
-      to: token, sound: 'default', title: alarm.name,
-      body: alarm.description, data: { alarmId: alarm.id }, channelId: 'alarms',
+    `).all(alarm.id);
+    const messages = devices.map(device => ({
+      to: device.token, sound: 'default', title: alarm.name,
+      body: alarm.description, data: { alarmId: alarm.id, userId: device.user_id }, channelId: 'alarms',
     }));
     let sent = 0;
     let failed = 0;

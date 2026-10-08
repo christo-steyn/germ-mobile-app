@@ -157,3 +157,14 @@ test('bad JSON and unknown endpoints return safe JSON errors', async () => {
   assert.deepEqual(await invalid.json(), { error: 'Invalid JSON.' });
   assert.equal((await request('/api/not-found')).status, 404);
 });
+
+test('authentication rate limits use JSON errors and disable response caching', async () => {
+  let result;
+  for (let i = 0; i < 21; i++) {
+    result = await request('/api/auth/login', { method: 'POST', body: {} });
+  }
+  assert.equal(result.status, 429);
+  assert.match(result.body.error, /Too many requests/);
+  const response = await fetch(`${baseUrl}/api/auth/me`);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+});

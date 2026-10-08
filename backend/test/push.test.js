@@ -16,6 +16,7 @@ test('push delivery targets subscribers, records receipts, and prunes invalid de
     assert.equal(messages.length, 2);
     assert.deepEqual(messages.map(m => m.to).sort(), ['ExpoPushToken[bad]', 'ExpoPushToken[good]']);
     assert.equal(messages[0].data.alarmId, 1);
+    assert.equal(messages[0].data.userId, 1);
     return messages.map(message => message.to === 'ExpoPushToken[bad]'
       ? { status: 'error', details: { error: 'DeviceNotRegistered' } }
       : { status: 'ok', id: 'receipt-1' });

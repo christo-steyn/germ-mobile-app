@@ -20,8 +20,16 @@ function createApp({ db, jwtSecret, adminKey, pushService, corsOrigin = false })
   app.use(helmet());
   app.use(cors({ origin: corsOrigin }));
   app.use(express.json({ limit: '16kb' }));
-  app.use('/api', rateLimit({ windowMs: 60_000, limit: 120 }));
-  const authLimit = rateLimit({ windowMs: 15 * 60_000, limit: 20 });
+  app.use('/api', (req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
+  const rateOptions = {
+    standardHeaders: 'draft-8', legacyHeaders: false,
+    message: { error: 'Too many requests. Please try again later.' },
+  };
+  app.use('/api', rateLimit({ ...rateOptions, windowMs: 60_000, limit: 120 }));
+  const authLimit = rateLimit({ ...rateOptions, windowMs: 15 * 60_000, limit: 20 });
   const getAlarm = id => db.prepare('SELECT * FROM alarms WHERE id = ?').get(id);
   const validId = value => /^[1-9]\d*$/.test(String(value)) && Number.isSafeInteger(Number(value));
   const tokenFor = user => jwt.sign({}, jwtSecret, {
