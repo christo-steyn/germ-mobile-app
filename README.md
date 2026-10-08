@@ -148,6 +148,7 @@ npm audit
 cd ../frontend
 npm run typecheck
 npx expo export --platform android --output-dir dist/android
+npx expo export --platform ios --output-dir dist/ios
 npm audit
 ```
 
@@ -164,8 +165,11 @@ from three transitive dependencies:
   untrusted build inputs/signing certificates.
 - Expo Router's `query-string` dependency uses an affected `decode-uri-component`.
   Its patched 0.5 release changes to ESM and breaks the CommonJS caller; a tested
-  override was reverted to keep navigation functional. Avoid untrusted deep links
-  in this test app; this advisory must be resolved before production use.
+  override was reverted to keep navigation functional. Native incoming links are
+  capped at 2048 characters and normalized to known routes and a numeric alarm ID
+  before Router decoding, mitigating this external-input path on iOS/Android.
+  The underlying advisory remains unresolved; web routing is not covered or
+  supported by this mobile starter. Reassess this mitigation before adding routes.
 
 A scoped override updates Xcode tooling's `uuid` dependency to a patched,
 compatible release. Review `npm audit` before deploying and update the SDK when
