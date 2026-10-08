@@ -44,6 +44,8 @@ function createApp({ db, jwtSecret, adminKey, pushService, corsOrigin = false })
       const payload = jwt.verify(token, jwtSecret, {
         algorithms: ['HS256'], issuer: 'germ-api', audience: 'germ-mobile',
       });
+      if (!Number.isFinite(payload.exp)) throw new Error('Missing token expiry');
+      req.tokenExpiresAt = payload.exp * 1000;
       req.user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(Number(payload.sub));
       if (!req.user) throw new Error('Unknown user');
       next();
@@ -109,8 +111,9 @@ function createApp({ db, jwtSecret, adminKey, pushService, corsOrigin = false })
     if (typeof token !== 'string' || token.length > 256 || !Expo.isExpoPushToken(token)) {
       return res.status(400).json({ error: 'A valid Expo push token is required.' });
     }
-    db.prepare(`INSERT INTO push_tokens (token, user_id) VALUES (?, ?)
-      ON CONFLICT(token) DO UPDATE SET user_id = excluded.user_id`).run(token, req.user.id);
+    db.prepare(`INSERT INTO push_tokens (token, user_id, expires_at) VALUES (?, ?, ?)
+      ON CONFLICT(token) DO UPDATE SET user_id = excluded.user_id, expires_at = excluded.expires_at`)
+      .run(token, req.user.id, req.tokenExpiresAt);
     res.sendStatus(204);
   });
   app.delete('/api/push-tokens', authenticate, (req, res) => {

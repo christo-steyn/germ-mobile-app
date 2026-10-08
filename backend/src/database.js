@@ -22,12 +22,16 @@ function openDatabase(filename) {
       PRIMARY KEY (user_id, alarm_id)
     );
     CREATE TABLE IF NOT EXISTS push_tokens (
-      token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE
+      token TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS push_receipts (
       id TEXT PRIMARY KEY, token TEXT NOT NULL, created_at INTEGER NOT NULL
     );
   `);
+  if (!db.prepare('PRAGMA table_info(push_tokens)').all().some(column => column.name === 'expires_at')) {
+    db.exec('ALTER TABLE push_tokens ADD COLUMN expires_at INTEGER NOT NULL DEFAULT 0');
+  }
   const insert = db.prepare('INSERT OR IGNORE INTO alarms (id, name, description, updated_at) VALUES (?, ?, ?, ?)');
   const now = new Date().toISOString();
   insert.run(1, 'Main entrance', 'Alarm at the main entrance', now);

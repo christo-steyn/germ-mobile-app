@@ -10,7 +10,10 @@ test('push delivery targets subscribers, records receipts, and prunes invalid de
   db.exec(`
     INSERT INTO users VALUES (1, 'subscribed', 'unused'), (2, 'other', 'unused');
     INSERT INTO subscriptions VALUES (1, 1), (2, 2);
-    INSERT INTO push_tokens VALUES ('ExpoPushToken[good]', 1), ('ExpoPushToken[bad]', 1), ('ExpoPushToken[other]', 2);
+    INSERT INTO push_tokens VALUES
+      ('ExpoPushToken[good]', 1, 9999999999999),
+      ('ExpoPushToken[bad]', 1, 9999999999999),
+      ('ExpoPushToken[other]', 2, 9999999999999);
   `);
   t.mock.method(Expo.prototype, 'sendPushNotificationsAsync', async messages => {
     assert.equal(messages.length, 2);
@@ -40,9 +43,26 @@ test('Expo failures do not throw or claim successful delivery', async t => {
   db.exec(`
     INSERT INTO users VALUES (1, 'subscribed', 'unused');
     INSERT INTO subscriptions VALUES (1, 1);
-    INSERT INTO push_tokens VALUES ('ExpoPushToken[good]', 1);
+    INSERT INTO push_tokens VALUES ('ExpoPushToken[good]', 1, 9999999999999);
   `);
   t.mock.method(Expo.prototype, 'sendPushNotificationsAsync', async () => { throw new Error('Offline'); });
   assert.deepEqual(await createPushService(db).sendAlarm({ id: 1, name: 'Alarm', description: 'Test' }),
     { sent: 0, failed: 1 });
+});
+
+test('expired login registrations cannot receive notifications', async t => {
+  const db = openDatabase(':memory:');
+  t.after(() => db.close());
+  db.exec(`
+    INSERT INTO users VALUES (1, 'subscribed', 'unused');
+    INSERT INTO subscriptions VALUES (1, 1);
+    INSERT INTO push_tokens VALUES ('ExpoPushToken[expired]', 1, 1);
+  `);
+  const send = t.mock.method(Expo.prototype, 'sendPushNotificationsAsync', async () => {
+    throw new Error('An expired registration must never be sent a notification');
+  });
+  assert.deepEqual(await createPushService(db).sendAlarm({ id: 1, name: 'Alarm', description: 'Test' }),
+    { sent: 0, failed: 0 });
+  assert.equal(send.mock.callCount(), 0);
+  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM push_tokens').get().count, 0);
 });

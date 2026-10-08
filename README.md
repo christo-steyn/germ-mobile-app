@@ -57,10 +57,13 @@ screen to view subscribed alarms. Refresh to retrieve changes from the server.
 
 JWTs are stored in **Expo SecureStore**, not unencrypted AsyncStorage.
 AsyncStorage is used only for non-sensitive preferences. Expired JWTs require
-signing in again; there is no refresh-token flow. Logging out unregisters the
+signing in again; there is no refresh-token flow. Push registrations also expire
+with the JWT that registered them (at most seven days), so expired sessions are
+not targeted. Sign in and refresh push registration to renew delivery.
+Logging out unregisters the
 device token when the API is reachable. If the API is offline, local logout still
 works, but that device may receive notifications until you reconnect and remove
-or reassign its token.
+or reassign its token, or that registration expires.
 
 ## 3. Enable real push notifications
 
@@ -153,11 +156,21 @@ they do not send notifications or require credentials. A bundle export verifies
 JavaScript packaging, not native signing or delivery. Final notification testing
 must be performed on configured physical devices.
 
-Expo's build tooling currently depends on `braces` and `node-forge` versions with
-published advisories and no patched releases. Do not expose Metro to untrusted
-networks or process untrusted build inputs/signing certificates. Review `npm audit`
-before deploying and update the SDK when compatible fixes become available;
-`npm audit fix --force` currently proposes incompatible SDK downgrades.
+The frontend audit still reports **21 findings (18 high, 3 moderate)**, cascading
+from three transitive dependencies:
+
+- Expo's build tooling uses `braces` and `node-forge` versions with advisories
+  and no patched releases. Do not expose Metro to untrusted networks or process
+  untrusted build inputs/signing certificates.
+- Expo Router's `query-string` dependency uses an affected `decode-uri-component`.
+  Its patched 0.5 release changes to ESM and breaks the CommonJS caller; a tested
+  override was reverted to keep navigation functional. Avoid untrusted deep links
+  in this test app; this advisory must be resolved before production use.
+
+A scoped override updates Xcode tooling's `uuid` dependency to a patched,
+compatible release. Review `npm audit` before deploying and update the SDK when
+compatible fixes become available; `npm audit fix --force` currently proposes
+incompatible SDK downgrades.
 
 ## Development versus production
 

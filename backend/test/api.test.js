@@ -127,6 +127,8 @@ test('push tokens validate format, transfer accounts, and cannot be deleted by a
     })).status, 204);
   }
   assert.equal(db.prepare('SELECT user_id FROM push_tokens WHERE token = ?').get(pushToken).user_id, 2);
+  assert.equal(db.prepare('SELECT expires_at FROM push_tokens WHERE token = ?').get(pushToken).expires_at,
+    jwt.decode(bob).exp * 1000);
   await request('/api/push-tokens', { token: alice, method: 'DELETE', body: { token: pushToken } });
   assert.equal(db.prepare('SELECT COUNT(*) AS count FROM push_tokens').get().count, 1);
   await request('/api/push-tokens', { token: bob, method: 'DELETE', body: { token: pushToken } });

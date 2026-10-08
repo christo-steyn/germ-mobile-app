@@ -5,6 +5,7 @@ function createPushService(db, accessToken) {
   const removeToken = db.prepare('DELETE FROM push_tokens WHERE token = ?');
 
   async function sendAlarm(alarm) {
+    db.prepare('DELETE FROM push_tokens WHERE expires_at <= ?').run(Date.now());
     const devices = db.prepare(`
       SELECT p.token, p.user_id FROM push_tokens p
       JOIN subscriptions s ON s.user_id = p.user_id WHERE s.alarm_id = ?
